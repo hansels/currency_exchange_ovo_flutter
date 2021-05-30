@@ -1,4 +1,3 @@
-import 'package:exchange_currency_ovo_flutter/functions/debouncer.dart';
 import 'package:exchange_currency_ovo_flutter/functions/toast_helper.dart';
 import 'package:exchange_currency_ovo_flutter/models/currency/currency.dart';
 import 'package:exchange_currency_ovo_flutter/widgets/currency_card.dart';
@@ -17,15 +16,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Debouncer debouncer;
   String newCurrency;
+  String temporaryValue;
   double value;
   List<String> ids;
 
   @override
   void initState() {
-    debouncer = Debouncer(milliseconds: 750);
     newCurrency = "";
+    temporaryValue = "";
     value = 1.0;
     ids = ["IDR", "EUR", "GBP", "SGD"];
     super.initState();
@@ -41,26 +40,43 @@ class _HomePageState extends State<HomePage> {
           fontSize: 22,
           fontWeight: FontWeight.w600,
         ),
-        NormalFormField(
-          suffixIcon: Icon(Icons.attach_money_rounded),
-          text: value.toString(),
-          onChanged: (val) => changeValue(double.tryParse(val)),
-          keyboardType: TextInputType.numberWithOptions(
-            decimal: true,
-            signed: true,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: NormalFormField(
+                suffixIcon: Icon(Icons.attach_money_rounded),
+                text: value.toString(),
+                onChanged: (val) => temporaryValue = val,
+                keyboardType: TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GestureDetector(
+                onTap: () => changeValue(double.tryParse(temporaryValue)),
+                child: const Icon(Icons.send_rounded, size: 28),
+              ),
+            )
+          ],
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 25),
         ListView.builder(
           itemBuilder: (context, i) => CurrencyCard(
             value: value,
             currency: widget.currencies[ids[i]],
-            deleteCallback: deleteCallback,
+            deleteCallback: (id) => deleteCallback(id),
           ),
           itemCount: ids.length,
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
         ),
+        const SizedBox(height: 25),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -78,7 +94,7 @@ class _HomePageState extends State<HomePage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: GestureDetector(
-                onTap: addCurrency,
+                onTap: () => addCurrency(),
                 child: const Icon(Icons.send_rounded, size: 28),
               ),
             )
@@ -90,23 +106,23 @@ class _HomePageState extends State<HomePage> {
 
   void changeValue(double val) {
     if (val == null) return;
-    debouncer.run(
-      () => setState(() {
-        FocusScope.of(context).unfocus();
-        value = val;
-      }),
-    );
+    setState(() {
+      FocusScope.of(context).unfocus();
+      value = val;
+    });
   }
 
   void addCurrency() {
     if (newCurrency == null || newCurrency.isEmpty) return;
-    var newData = widget.currencies[newCurrency];
+
+    var currency = newCurrency?.toUpperCase();
+    var newData = widget.currencies[currency];
 
     if (newData == null) {
       ToastHelper.showException("ID Currency tidak ditemukan!", context);
     } else {
-      ToastHelper.show("Berhasil menambah Currency $newCurrency", context);
-      ids.add(newCurrency);
+      ToastHelper.show("Berhasil menambah Currency $currency", context);
+      ids.add(currency);
     }
     setState(() => newCurrency = "");
   }
